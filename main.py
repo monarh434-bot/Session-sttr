@@ -12,9 +12,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # === Токен бота-генератора (отдельный бот!) ===
-BOT_TOKEN = os.environ.get("GEN_BOT_TOKEN", "9ca11338796d375b98ab716bc20603d7")
-API_ID = int(os.environ.get("API_ID", 730880))
-API_HASH = os.environ.get("API_HASH", "8452616761:AAE7E-cadqGwikNwn44b-evrzdSCdFsN8Zw")
+BOT_TOKEN = os.environ.get("9ca11338796d375b98ab716bc20603d7", "")
+API_ID = int(os.environ.get("730880", 0))
+API_HASH = os.environ.get("8452616761:AAE7E-cadqGwikNwn44b-evrzdSCdFsN8Zw", "")
 
 # Хранилище состояний пользователей
 user_sessions = {}
