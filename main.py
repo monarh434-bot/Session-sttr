@@ -1,7 +1,7 @@
 import os
 import asyncio
 import logging
-from pyrogram import Client, filters
+from pyrogram import Client, filters, idle
 from pyrogram.types import Message
 from pyrogram.errors import (
     ApiIdInvalid, PhoneNumberInvalid, PhoneCodeInvalid,
@@ -145,7 +145,9 @@ async def handle_input(client: Client, message: Message):
 async def main():
     logger.info("Session generator bot started...")
     await bot.start()
-    await asyncio.Event().wait()
+    logger.info("Bot is ready and listening...")
+    await idle()
+    await bot.stop()
 
 
 if __name__ == "__main__":
