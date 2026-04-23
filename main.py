@@ -11,19 +11,30 @@ from pyrogram.errors import (
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# === Токен бота-генератора (отдельный бот!) ===
-BOT_TOKEN = os.environ.get("9ca11338796d375b98ab716bc20603d7", "")
-API_ID = int(os.environ.get("730880", 0))
-API_HASH = os.environ.get("8452616761:AAE7E-cadqGwikNwn44b-evrzdSCdFsN8Zw", "")
+# ============================================================
+#   ВСТАВЬ СВОИ ДАННЫЕ ЗДЕСЬ
+# ============================================================
 
-# Хранилище состояний пользователей
+API_ID = 730880              # <- Вставь свой API_ID (только цифры)
+API_HASH = "9ca11338796d375b98ab716bc20603d7"           # <- Вставь свой API_HASH (в кавычках)
+GEN_BOT_TOKEN = "8452616761:AAE7E-cadqGwikNwn44b-evrzdSCdFsN8Zw"      # <- Вставь токен бота от @BotFather (в кавычках)
+
+# ============================================================
+#   ПРИМЕР ЗАПОЛНЕНИЯ:
+#
+#   API_ID = 730880
+#   API_HASH = "9ca11338796d375b98ab716bc20603d7"
+#   GEN_BOT_TOKEN = "123456789:AAFxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+#
+# ============================================================
+
 user_sessions = {}
 
 bot = Client(
     "session_gen_bot",
     api_id=API_ID,
     api_hash=API_HASH,
-    bot_token=BOT_TOKEN,
+    bot_token=GEN_BOT_TOKEN,
 )
 
 
@@ -33,8 +44,7 @@ async def start(client: Client, message: Message):
     user_sessions[uid] = {"step": "idle"}
     await message.reply(
         "👋 Привет! Я помогу сгенерировать SESSION_STRING для юзербота.\n\n"
-        "⚠️ **Важно:** Сессия даёт полный доступ к аккаунту. "
-        "Никому не передавай SESSION_STRING кроме своего сервера!\n\n"
+        "⚠️ Никому не передавай SESSION_STRING кроме своего сервера!\n\n"
         "Напиши /generate чтобы начать."
     )
 
@@ -55,16 +65,14 @@ async def handle_input(client: Client, message: Message):
     text = message.text.strip()
 
     if uid not in user_sessions or user_sessions[uid].get("step") == "idle":
-        await message.reply("Напиши /generate чтобы начать генерацию сессии.")
+        await message.reply("Напиши /generate чтобы начать.")
         return
 
     step = user_sessions[uid]["step"]
 
-    # === Шаг 1: получили номер телефона ===
     if step == "wait_phone":
         phone = text
         await message.reply("⏳ Отправляю код на номер...")
-
         try:
             tmp_client = Client(
                 f"tmp_{uid}",
@@ -82,69 +90,54 @@ async def handle_input(client: Client, message: Message):
             }
             await message.reply(
                 "✅ Код отправлен в Telegram!\n\n"
-                "Введи код через пробел между цифрами:\n"
-                "Пример: `1 2 3 4 5`\n\n"
-                "_(пробелы нужны чтобы Telegram не счёл это за реальный код)_"
+                "Введи код с пробелами между цифрами:\n"
+                "Пример: `1 2 3 4 5`"
             )
         except PhoneNumberInvalid:
-            await message.reply("❌ Неверный номер телефона. Попробуй снова /generate")
-        except ApiIdInvalid:
-            await message.reply("❌ Неверный API_ID или API_HASH на сервере.")
+            await message.reply("❌ Неверный номер. Попробуй /generate снова.")
         except Exception as e:
             await message.reply(f"❌ Ошибка: {e}")
 
-    # === Шаг 2: получили код ===
     elif step == "wait_code":
         code = text.replace(" ", "")
         tmp_client = user_sessions[uid]["client"]
         phone = user_sessions[uid]["phone"]
         phone_code_hash = user_sessions[uid]["phone_code_hash"]
-
         try:
             await tmp_client.sign_in(phone, phone_code_hash, code)
             session_string = await tmp_client.export_session_string()
             await tmp_client.disconnect()
-
             user_sessions[uid] = {"step": "idle"}
             await message.reply(
-                f"🎉 **SESSION_STRING сгенерирована!**\n\n"
+                f"🎉 Готово! Вот твоя SESSION_STRING:\n\n"
                 f"`{session_string}`\n\n"
-                f"📋 Скопируй и вставь в переменные Railway как `SESSION_STRING`\n\n"
-                f"⚠️ Сохрани в надёжном месте и никому не передавай!"
+                f"📋 Скопируй и вставь в Railway как переменную SESSION_STRING"
             )
         except PhoneCodeInvalid:
-            await message.reply("❌ Неверный код. Попробуй снова /generate")
+            await message.reply("❌ Неверный код. Попробуй /generate снова.")
         except PhoneCodeExpired:
-            await message.reply("❌ Код истёк. Попробуй снова /generate")
+            await message.reply("❌ Код истёк. Попробуй /generate снова.")
         except SessionPasswordNeeded:
             user_sessions[uid]["step"] = "wait_password"
             user_sessions[uid]["client"] = tmp_client
-            await message.reply(
-                "🔐 У тебя включена двухфакторная аутентификация.\n"
-                "Введи пароль от Telegram:"
-            )
+            await message.reply("🔐 Введи пароль двухфакторной аутентификации:")
         except Exception as e:
             await message.reply(f"❌ Ошибка: {e}")
 
-    # === Шаг 3: двухфакторный пароль ===
     elif step == "wait_password":
-        password = text
         tmp_client = user_sessions[uid]["client"]
-
         try:
-            await tmp_client.check_password(password)
+            await tmp_client.check_password(text)
             session_string = await tmp_client.export_session_string()
             await tmp_client.disconnect()
-
             user_sessions[uid] = {"step": "idle"}
             await message.reply(
-                f"🎉 **SESSION_STRING сгенерирована!**\n\n"
+                f"🎉 Готово! Вот твоя SESSION_STRING:\n\n"
                 f"`{session_string}`\n\n"
-                f"📋 Скопируй и вставь в переменные Railway как `SESSION_STRING`\n\n"
-                f"⚠️ Сохрани в надёжном месте и никому не передавай!"
+                f"📋 Скопируй и вставь в Railway как переменную SESSION_STRING"
             )
         except PasswordHashInvalid:
-            await message.reply("❌ Неверный пароль. Попробуй снова /generate")
+            await message.reply("❌ Неверный пароль. Попробуй /generate снова.")
         except Exception as e:
             await message.reply(f"❌ Ошибка: {e}")
 
